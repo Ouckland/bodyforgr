@@ -1,0 +1,10 @@
+.virtualenv/
+__pycache__/
+.vscode/
+*.pyc
+
+imm-todo.md
+mvp-architec.md
+mvp-roadmap.md
+prd.md
+workflow.md
