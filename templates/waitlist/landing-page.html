@@ -24,43 +24,76 @@
     <!-- Glass Overlay -->
     <div class="glass-overlay"></div>
 
-<!-- Updated Right-Side Minimal Navigation -->
-<nav class="minimal-nav" id="minimalNav">
-    <!-- Progress Indicator -->
-    <div class="nav-progress">
-        <div class="progress-track"></div>
-        <div class="progress-fill"></div>
-    </div>
-    
-    <!-- Navigation Dots -->
-    <div class="nav-dots">
-        <a href="#hero" class="nav-dot" data-section="hero" title="Home">
-            <span class="dot"></span>
-            <span class="dot-label">Home</span>
-        </a>
-        <a href="#problem" class="nav-dot" data-section="problem" title="The Problem">
-            <span class="dot"></span>
-            <span class="dot-label">Problem</span>
-        </a>
-        <a href="#solution" class="nav-dot" data-section="solution" title="The Solution">
-            <span class="dot"></span>
-            <span class="dot-label">Solution</span>
-        </a>
-        <a href="#features" class="nav-dot" data-section="features" title="Features">
-            <span class="dot"></span>
-            <span class="dot-label">Features</span>
-        </a>
-        <a href="#waitlist" class="nav-dot" data-section="waitlist" title="Join Waitlist">
-            <span class="dot"></span>
-            <span class="dot-label">Join</span>
-        </a>
-    </div>
-    
-    <!-- Brand Marker -->
-    <div class="nav-brand" title="Back to top">
-        <span class="brand-symbol">⟁</span>
-    </div>
-</nav>
+    <!-- Mobile Navigation (Hidden on Desktop) -->
+    <nav class="mobile-nav" id="mobileNav">
+        <div class="mobile-nav-items">
+            <a href="#hero" class="mobile-nav-item active">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </a>
+            <a href="#problem" class="mobile-nav-item">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>Problem</span>
+            </a>
+            <a href="#solution" class="mobile-nav-item">
+                <i class="fas fa-lightbulb"></i>
+                <span>Solution</span>
+            </a>
+            <a href="#features" class="mobile-nav-item">
+                <i class="fas fa-layer-group"></i>
+                <span>Features</span>
+            </a>
+            <a href="#waitlist" class="mobile-nav-item">
+                <i class="fas fa-rocket"></i>
+                <span>Join</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <div class="mobile-header-content">
+            <div class="mobile-logo">BODYFORGR</div>
+        </div>
+    </header>
+
+    <!-- Updated Right-Side Minimal Navigation -->
+    <nav class="minimal-nav" id="minimalNav">
+        <!-- Progress Indicator -->
+        <div class="nav-progress">
+            <div class="progress-track"></div>
+            <div class="progress-fill"></div>
+        </div>
+        
+        <!-- Navigation Dots -->
+        <div class="nav-dots">
+            <a href="#hero" class="nav-dot" data-section="hero" title="Home">
+                <span class="dot"></span>
+                <span class="dot-label">Home</span>
+            </a>
+            <a href="#problem" class="nav-dot" data-section="problem" title="The Problem">
+                <span class="dot"></span>
+                <span class="dot-label">Problem</span>
+            </a>
+            <a href="#solution" class="nav-dot" data-section="solution" title="The Solution">
+                <span class="dot"></span>
+                <span class="dot-label">Solution</span>
+            </a>
+            <a href="#features" class="nav-dot" data-section="features" title="Features">
+                <span class="dot"></span>
+                <span class="dot-label">Features</span>
+            </a>
+            <a href="#waitlist" class="nav-dot" data-section="waitlist" title="Join Waitlist">
+                <span class="dot"></span>
+                <span class="dot-label">Join</span>
+            </a>
+        </div>
+        
+        <!-- Brand Marker -->
+        <div class="nav-brand" title="Back to top">
+            <span class="brand-symbol">⟁</span>
+        </div>
+    </nav>
 
     <!-- Hero Section -->
     <section id="hero" class="hero">
@@ -242,7 +275,7 @@
         </div>
         
         <div class="waitlist-form-container">
-            <form id="waitlistForm" method="POST" action="{% url 'waitlist:early_access_signup' %}">
+            <form id="waitlistForm" method="POST" action="{% url 'waitlist:signup' %}">
                 {% csrf_token %}
                 
                 <div class="form-group">
@@ -309,20 +342,14 @@
                 <span class="footer-logo">BODYFORGR</span>
                 <p class="footer-tagline">Build Your Body. Your Way.</p>
             </div>
-            <div class="footer-links">
-                <a href="#" class="footer-link">Privacy</a>
-                <a href="#" class="footer-link">Terms</a>
-                <a href="#" class="footer-link">Contact</a>
-                <a href="mailto:hello@bodyforgr.com" class="footer-link">hello@bodyforgr.com</a>
-            </div>
+            
         </div>
         <div class="footer-copyright">
-            © 2024 BodyForgr. All rights reserved.
+            © 2026 BodyForgr. All rights reserved.
         </div>
     </footer>
 
     <!-- JavaScript -->
-    <script src="{% static 'js/waitlist/landing-page.js' %}">
-    </script>
+    <script src="{% static 'js/waitlist/landing-page.js' %}"></script>
 </body>
 </html>

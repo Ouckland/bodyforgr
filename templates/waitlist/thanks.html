@@ -1,0 +1,197 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thank You - BodyForgr</title>
+    <link rel="stylesheet" href="{% static 'css/waitlist/landing-page.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-container">
+        <div class="background-overlay"></div>
+    </div>
+
+    <div class="glass-overlay"></div>
+
+    <main class="thank-you-page">
+        <div class="thank-you-container">
+            <div class="thank-you-card">
+                <div class="thank-you-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                
+                <h1 class="thank-you-title">You're on the List!</h1>
+                
+                <p class="thank-you-message">
+                    Hi {{ name }}, thank you for joining the BodyForgr waitlist.
+                </p>
+                
+                {% if is_early_adopter %}
+                <div class="early-bird-badge">
+                    <i class="fas fa-crown"></i>
+                    <span>Early Bird Member</span>
+                </div>
+                <p class="early-bird-message">
+                    Congratulations! You're among the first 100 to join.
+                </p>
+                {% endif %}
+                
+                {% if position %}
+                <div class="position-info">
+                    <p>Your position in line: <strong>#{{ position }}</strong></p>
+                </div>
+                {% endif %}
+                
+                <div class="next-steps">
+                    <h3>What happens next?</h3>
+                    <ul>
+                        <li>Check your email for confirmation</li>
+                        <li>We'll notify you when beta access is ready</li>
+                        <li>Follow us on social media for updates</li>
+                    </ul>
+                </div>
+                
+                <div class="action-buttons">
+                    <a href="{% url 'waitlist:landing_page' %}" class="btn btn-primary">
+                        <i class="fas fa-home"></i>
+                        <span>Back to Home</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <style>
+        .thank-you-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .thank-you-container {
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        .thank-you-card {
+            background: var(--glass-overlay);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-xl);
+            padding: var(--space-2xl);
+            text-align: center;
+        }
+        
+        .thank-you-icon {
+            font-size: 4rem;
+            color: var(--accent-primary);
+            margin-bottom: var(--space-lg);
+            text-shadow: 0 0 30px var(--accent-glow);
+        }
+        
+        .thank-you-title {
+            font-size: 2rem;
+            margin-bottom: var(--space-md);
+            color: var(--text-primary);
+        }
+        
+        .thank-you-message {
+            color: var(--text-secondary);
+            margin-bottom: var(--space-lg);
+            font-size: 1.125rem;
+        }
+        
+        .early-bird-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+            padding: var(--space-sm) var(--space-lg);
+            border-radius: var(--radius-full);
+            margin-bottom: var(--space-md);
+            font-weight: 600;
+        }
+        
+        .early-bird-message {
+            color: #FFD700;
+            margin-bottom: var(--space-lg);
+        }
+        
+        .position-info {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: var(--radius-lg);
+            padding: var(--space-md);
+            margin-bottom: var(--space-lg);
+        }
+        
+        .position-info p {
+            color: var(--accent-primary);
+            font-size: 1.25rem;
+            margin: 0;
+        }
+        
+        .next-steps {
+            text-align: left;
+            margin-bottom: var(--space-xl);
+            padding: var(--space-lg);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--radius-lg);
+        }
+        
+        .next-steps h3 {
+            color: var(--text-primary);
+            margin-bottom: var(--space-md);
+        }
+        
+        .next-steps ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .next-steps li {
+            color: var(--text-secondary);
+            padding: var(--space-xs) 0;
+            padding-left: var(--space-lg);
+            position: relative;
+        }
+        
+        .next-steps li:before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--accent-primary);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: var(--space-md);
+            justify-content: center;
+        }
+        
+        @media (max-width: 768px) {
+            .thank-you-card {
+                padding: var(--space-xl);
+            }
+            
+            .thank-you-title {
+                font-size: 1.75rem;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</body>
+</html>
