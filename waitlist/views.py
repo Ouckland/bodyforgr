@@ -17,10 +17,9 @@ logger = logging.getLogger(__name__)
 # Constants
 EARLY_BIRD_LIMIT = 100
 
-# Create your views here.
+
 def landing_page(request):
     """Main landing page with waitlist form"""
-    # Calculate waitlist stats
     total_users = WaitListUser.objects.count()
     coaches = WaitListUser.objects.filter(role='coach').count()
     early_birds = WaitListUser.objects.filter(is_early_adopter=True).count()
@@ -29,83 +28,109 @@ def landing_page(request):
         'total_users': total_users,
         'coaches': coaches,
         'early_birds': early_birds,
-        'remaining_spots': max(0, EARLY_BIRD_LIMIT - early_birds),
+        'remaining_spots': max(0, 100 - early_birds),
+        'form': WaitlistSignupForm(),
     }
     return render(request, 'waitlist/landing-page.html', context)
+
+
+from django.db import transaction
+from django.db.utils import IntegrityError
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def waitlist_signup(request):
     """
     Handle waitlist signup (AJAX only)
-    Since you're using a single page, this should only handle AJAX requests
+    Using atomic transaction to prevent race conditions
     """
     form = WaitlistSignupForm(request.POST)
     
-    if form.is_valid():
-        email = form.cleaned_data['email'].lower()
-        
-        # Check for existing user
-        existing_user = WaitListUser.objects.filter(email=email).first()
-        
-        if existing_user:
-            # Update existing user
-            existing_user.name = form.cleaned_data['name']
-            existing_user.role = form.cleaned_data['role']
-            existing_user.source = form.cleaned_data['source']
-            existing_user.save()
-            waitlist_user = existing_user
-            is_new = False
-            position = existing_user.waitlist_position
-        else:
-            # Create new user
-            waitlist_user = form.save(commit=False)
-            
-            # Check if early bird
-            total_users = WaitListUser.objects.count()
-            if total_users < EARLY_BIRD_LIMIT:
-                waitlist_user.is_early_adopter = True
-            
-            # Get IP address
-            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-            if x_forwarded_for:
-                ip = x_forwarded_for.split(',')[0]
-            else:
-                ip = request.META.get('REMOTE_ADDR')
-            
-            waitlist_user.ip_address = ip
-            waitlist_user.is_invited = True
-            waitlist_user.save()
-            
-            is_new = True
-            position = waitlist_user.waitlist_position
-        
-        # Send confirmation email
-        email_sent = send_confirmation_email(waitlist_user, position, is_new)
-        
-        # Prepare response data
-        response_data = {
-            'success': True,
-            'message': "You're on the waitlist! Check your email for confirmation.",
-            'is_early_adopter': waitlist_user.is_early_adopter,
-            'is_new_user': is_new,
-            'position': position,
-            'total_users': WaitListUser.objects.count(),
-        }
-        
-        # Log the signup
-        logger.info(f"Waitlist signup: {email} - {'New' if is_new else 'Existing'} user")
-        
-        return JsonResponse(response_data)
-    
-    else:
-        # Form has errors
+    if not form.is_valid():
         return JsonResponse({
             'success': False,
             'errors': form.errors
         }, status=400)
+    
+    email = form.cleaned_data['email'].lower()
+    name = form.cleaned_data['name']
+    role = form.cleaned_data['role']
+    source = form.cleaned_data.get('source')
+    
+    try:
+        with transaction.atomic():
+            # Use get_or_create for atomic operation
+            waitlist_user, created = WaitListUser.objects.get_or_create(
+                email=email,
+                defaults={
+                    'name': name,
+                    'role': role,
+                    'source': source,
+                    'is_invited': True,
+                }
+            )
+            
+            # If user already existed, update their info
+            if not created:
+                waitlist_user.name = name
+                waitlist_user.role = role
+                waitlist_user.source = source
+                waitlist_user.save()
+            else:
+                # Check if early bird for new users only
+                total_users = WaitListUser.objects.count()
+                if total_users <= EARLY_BIRD_LIMIT:
+                    waitlist_user.is_early_adopter = True
+                
+                # Get IP address for new users
+                x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+                if x_forwarded_for:
+                    ip = x_forwarded_for.split(',')[0]
+                else:
+                    ip = request.META.get('REMOTE_ADDR')
+                waitlist_user.ip_address = ip
+                
+                waitlist_user.save()
+            
+            # Calculate position
+            position = waitlist_user.waitlist_position
+            
+            # Send email (don't fail the whole request if email fails)
+            email_sent = False
+            try:
+                email_sent = send_confirmation_email(waitlist_user, position, created)
+            except Exception as e:
+                logger.warning(f"Email sending error (non-critical): {str(e)}")
+            
+            # Prepare response
+            response_data = {
+                'success': True,
+                'message': "You're on the waitlist!" + (" Check your email for confirmation." if email_sent else ""),
+                'is_early_adopter': waitlist_user.is_early_adopter,
+                'is_new_user': created,
+                'position': position,
+                'total_users': WaitListUser.objects.count(),
+                'email_sent': email_sent,
+            }
+            
+            return JsonResponse(response_data)
+            
+    except IntegrityError:
+        # This shouldn't happen with get_or_create + atomic, but just in case
+        return JsonResponse({
+            'success': False,
+            'error': 'This email is already on the waitlist.'
+        }, status=400)
+        
+    except Exception as e:
+        logger.error(f"Error in waitlist signup: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'An unexpected error occurred. Please try again.'
+        }, status=500)
 
-def send_confirmation_email(waitlist_user, position, is_new_user=True):
+
+def send_confirmation_email(waitlist_user, position=None, is_new_user=True):
     """Send waitlist confirmation email"""
     try:
         subject = "Welcome to BodyForgr Waitlist!"
@@ -116,6 +141,8 @@ def send_confirmation_email(waitlist_user, position, is_new_user=True):
             'position': position if is_new_user else None,
             'is_early_adopter': waitlist_user.is_early_adopter,
             'total_users': WaitListUser.objects.count(),
+            'unsubscribe_link': '#',
+            'privacy_link': '#',
         }
         
         # Render email content
@@ -142,23 +169,6 @@ def send_confirmation_email(waitlist_user, position, is_new_user=True):
         logger.error(f"Failed to send email to {waitlist_user.email}: {str(e)}")
         return False
 
-def waitlist_success(request):
-    """Thank you page (for non-AJAX submissions or direct access)"""
-    # Get data from session or show generic message
-    waitlist_data = request.session.get('waitlist_data', {})
-    
-    context = {
-        'name': waitlist_data.get('name', 'there'),
-        'email': waitlist_data.get('email', ''),
-        'is_early_adopter': waitlist_data.get('is_early_adopter', False),
-        'position': waitlist_data.get('position'),
-    }
-    
-    # Clear session data
-    if 'waitlist_data' in request.session:
-        del request.session['waitlist_data']
-    
-    return render(request, "waitlist/thanks.html", context)
 
 @csrf_exempt
 def waitlist_api_signup(request):
@@ -225,3 +235,36 @@ def waitlist_api_signup(request):
             'success': False,
             'error': 'Internal server error'
         }, status=500)
+
+
+def waitlist_success(request):
+    """Thank you page for successful signup"""
+    # Try to get data from session (for non-AJAX submissions)
+    waitlist_data = request.session.get('waitlist_data', {})
+    
+    # Also check for query parameters (for direct links)
+    name = request.GET.get('name', waitlist_data.get('name', 'there'))
+    email = request.GET.get('email', waitlist_data.get('email', ''))
+    is_early_adopter = request.GET.get('early', 
+        str(waitlist_data.get('is_early_adopter', False)).lower()) == 'true'
+    position = request.GET.get('position', waitlist_data.get('position'))
+    
+    # Clear session data after use
+    if 'waitlist_data' in request.session:
+        del request.session['waitlist_data']
+    
+    # Get stats for the page
+    total_users = WaitListUser.objects.count()
+    early_birds = WaitListUser.objects.filter(is_early_adopter=True).count()
+    
+    context = {
+        'name': name,
+        'email': email,
+        'is_early_adopter': is_early_adopter,
+        'position': position,
+        'total_users': total_users,
+        'early_birds': early_birds,
+        'remaining_spots': max(0, EARLY_BIRD_LIMIT - early_birds),
+    }
+    
+    return render(request, "waitlist/thanks.html", context)

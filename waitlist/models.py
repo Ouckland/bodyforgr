@@ -1,14 +1,15 @@
 from django.db import models
 
 class RoleChoices(models.TextChoices):
-    USER = 'user', 'User'
-    COACH = 'coach', 'Coach'
+    USER = 'user', 'Fitness Enthusiast'
+    COACH = 'coach', 'Fitness Coach/Trainer' 
 
 class SourceChoices(models.TextChoices):
     HOMEPAGE = 'homepage', 'Homepage'
     TWITTER = 'x', 'X (formerly Twitter)'
-    SOCIAL_MEDIA = 'other_social_media', 'Other Social Media'
-    FRIEND = 'friend_referral', 'Friend Referral'
+    SOCIAL_MEDIA = 'social', 'Social Media' 
+    SEARCH = 'search', 'Search Engine'
+    FRIEND = 'friend', 'Friend/Colleague'
     OTHER = 'other', 'Other'
 
 class WaitListUser(models.Model):

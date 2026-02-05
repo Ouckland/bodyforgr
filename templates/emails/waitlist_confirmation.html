@@ -51,6 +51,11 @@
             color: #6b7280;
             text-align: center;
         }
+        @media (max-width: 600px) {
+            .header, .content {
+                padding: 20px 15px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -103,8 +108,8 @@
             <p>BodyForgr - Building smarter fitness tools for Africa</p>
             <p>Lagos, Nigeria</p>
             <p>
-                <a href="#" style="color: #6366f1;">Unsubscribe</a> | 
-                <a href="#" style="color: #6366f1;">Privacy Policy</a>
+                <a href="{{ unsubscribe_link }}" style="color: #6366f1;">Unsubscribe</a> | 
+                <a href="{{ privacy_link }}" style="color: #6366f1;">Privacy Policy</a>
             </p>
         </div>
     </div>

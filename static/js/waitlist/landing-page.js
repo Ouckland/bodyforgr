@@ -218,6 +218,7 @@ function initMobileNavigation() {
     window.addEventListener('scroll', updateActiveMobileNav);
     updateActiveMobileNav();
 }
+
 // ===== FORM VALIDATION & SUBMISSION =====
 function initFormValidation() {
     const waitlistForm = document.getElementById('waitlistForm');
@@ -228,21 +229,20 @@ function initFormValidation() {
         minNameLength: 2,
         maxNameLength: 100,
         emailRegex: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-        debounceDelay: 300, // ms for real-time validation
-        loadingTimeout: 10000, // ms to reset button
+        debounceDelay: 300,
+        loadingTimeout: 10000,
     };
     
     // State management
     let isSubmitting = false;
     let validationTimeout = null;
     
-    // Get form elements
     const formElements = {
-        name: waitlistForm.querySelector('[name="name"]'),
-        email: waitlistForm.querySelector('[name="email"]'),
-        confirmEmail: waitlistForm.querySelector('[name="confirm_email"]'),
-        role: waitlistForm.querySelector('[name="role"]'),
-        source: waitlistForm.querySelector('[name="source"]'),
+        name: waitlistForm.querySelector('#id_name'),
+        email: waitlistForm.querySelector('#id_email'),
+        confirmEmail: waitlistForm.querySelector('#id_confirm_email'),
+        role: waitlistForm.querySelector('#id_role'),
+        source: waitlistForm.querySelector('#id_source'),
         submitBtn: waitlistForm.querySelector('.btn-submit'),
     };
     
@@ -338,7 +338,6 @@ function initFormValidation() {
     function validateName(name) {
         if (!name || name.length < validationConfig.minNameLength) return false;
         if (name.length > validationConfig.maxNameLength) return false;
-        // Check for valid characters (letters, spaces, hyphens, apostrophes)
         const nameRegex = /^[a-zA-Z\s\-']+$/;
         return nameRegex.test(name);
     }
@@ -565,11 +564,16 @@ function initFormValidation() {
             showEarlyBirdBadge(data.position);
         }
         
-        // Optional: Scroll to success message
-        const successElement = document.getElementById('success-message');
-        if (successElement) {
-            successElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+        // Optional: Redirect to thank you page after 3 seconds
+        setTimeout(() => {
+            const params = new URLSearchParams({
+                name: formElements.name ? formElements.name.value : '',
+                email: formElements.email ? formElements.email.value : '',
+                early: data.is_early_adopter,
+                position: data.position || ''
+            });
+            window.location.href = `/waitlist/thanks/?${params.toString()}`;
+        }, 3000);
     }
     
     function handleErrorResponse(data, statusCode) {
@@ -593,7 +597,7 @@ function initFormValidation() {
                 firstErrorField.focus();
             }
             
-            return; // Validation errors already shown
+            return;
         }
         
         if (data.error) {
@@ -604,7 +608,6 @@ function initFormValidation() {
     }
     
     function handleNetworkError(error) {
-        console.error('Form submission error:', error);
         showNotification('Network error. Please check your connection and try again.', 'error');
     }
     
@@ -872,11 +875,6 @@ function addFormValidationStyles() {
     document.head.appendChild(style);
 }
 
-// Make sure to add this to your initialization
-document.addEventListener('DOMContentLoaded', function() {
-    initFormValidation();
-    // ... other init functions
-});
 // ===== SMOOTH SCROLL =====
 function initSmoothScroll() {
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -889,7 +887,7 @@ function initSmoothScroll() {
                 e.preventDefault();
                 
                 const isMobile = window.innerWidth < 769;
-                const headerOffset = isMobile ? 60 : 0; // Mobile header height
+                const headerOffset = isMobile ? 60 : 0;
                 const targetPosition = targetElement.offsetTop - headerOffset;
                 
                 window.scrollTo({

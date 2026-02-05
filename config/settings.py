@@ -79,10 +79,10 @@ EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
+EMAIL_HOST_USER = 'iselekorede5@gmail.com'
+EMAIL_HOST_PASSWORD = 'hnzk mngv xcye sivr'
 
-DEFAULT_FROM_EMAIL = "Waitlist <yourgmail@gmail.com>"
+DEFAULT_FROM_EMAIL = "BodyForgr Waitlist <iselekorede5@gmail.com>"
 
 
 # Database

@@ -274,44 +274,59 @@
             </p>
         </div>
         
+        <!-- waitlist/landing-page.html -->
         <div class="waitlist-form-container">
             <form id="waitlistForm" method="POST" action="{% url 'waitlist:signup' %}">
                 {% csrf_token %}
                 
+                <!-- Debug: Show form errors at top -->
+                {% if form.errors %}
+                <div class="form-errors">
+                    <h4>Please fix the following errors:</h4>
+                    <ul>
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                        <li>{{ field }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                <!-- Name Field -->
                 <div class="form-group">
-                    <label class="form-label">Full Name</label>
-                    <input type="text" name="name" class="form-input" placeholder="Your full name" required>
+                    <label class="form-label">{{ form.name.label }}</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                    <div class="error-message">{{ form.name.errors.0 }}</div>
+                    {% endif %}
                 </div>
                 
+                <!-- Email Field -->
                 <div class="form-group">
-                    <label class="form-label">Email Address</label>
-                    <input type="email" name="email" class="form-input" placeholder="you@example.com" required>
+                    <label class="form-label">{{ form.email.label }}</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                    <div class="error-message">{{ form.email.errors.0 }}</div>
+                    {% endif %}
                 </div>
                 
+                <!-- Role Field -->
                 <div class="form-group">
-                    <label class="form-label">Confirm Email</label>
-                    <input type="email" name="confirm_email" class="form-input" placeholder="you@example.com" required>
+                    <label class="form-label">{{ form.role.label }}</label>
+                    {{ form.role }}
+                    {% if form.role.errors %}
+                    <div class="error-message">{{ form.role.errors.0 }}</div>
+                    {% endif %}
                 </div>
                 
+                <!-- Source Field -->
                 <div class="form-group">
-                    <label class="form-label">I am a</label>
-                    <select name="role" class="form-input form-select" required>
-                        <option value="">Select your role</option>
-                        <option value="user">Fitness Enthusiast</option>
-                        <option value="coach">Fitness Coach/Trainer</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">How did you hear about us?</label>
-                    <select name="source" class="form-input form-select">
-                        <option value="">Select one</option>
-                        <option value="search">Search Engine</option>
-                        <option value="social">Social Media</option>
-                        <option value="friend">Friend/Colleague</option>
-                        <option value="other">Other</option>
-                    </select>
+                    <label class="form-label">{{ form.source.label }}</label>
+                    {{ form.source }}
+                    {% if form.source.errors %}
+                    <div class="error-message">{{ form.source.errors.0 }}</div>
+                    {% endif %}
                 </div>
                 
                 <button type="submit" class="btn btn-submit">
@@ -319,11 +334,13 @@
                     <i class="fas fa-paper-plane"></i>
                 </button>
             </form>
+        </div>
             
             <div class="form-note">
                 By joining, you agree to receive updates about BodyForgr. No spam, ever.
             </div>
         </div>
+                    
         
         <!-- Coming Next Teaser -->
         <div class="coming-next">
