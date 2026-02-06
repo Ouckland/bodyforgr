@@ -2,8 +2,10 @@
 __pycache__/
 .vscode/
 *.pyc
-
 .env
+
+staticfiles/
+media/
 
 imm-todo.md
 mvp-architec.md

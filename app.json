@@ -1,0 +1,24 @@
+{
+  "name": "BodyForgr",
+  "description": "Fitness web app with waitlist",
+  "repository": "https://github.com/Ouckland/bodyforgr",
+  "keywords": ["django", "fitness", "waitlist"],
+  "env": {
+    "SECRET_KEY": {
+      "description": "Django secret key",
+      "generator": "secret"
+    },
+    "DEBUG": {
+      "description": "Disable Django debug mode",
+      "value": "False"
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "scripts": {
+    "postdeploy": "python manage.py migrate --noinput"
+  }
+}
