@@ -1,5 +1,5 @@
-from django.conf import settings
 from django.shortcuts import render, redirect
+from django.conf import settings
 from django.contrib import messages
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
@@ -268,3 +268,10 @@ def waitlist_success(request):
     }
     
     return render(request, "waitlist/thanks.html", context)
+
+
+def custom_404(request, exception):
+    return render(request, 'errors/404.html', status=404)
+
+def custom_500(request):
+    return render(request, 'errors/500.html', status=500)

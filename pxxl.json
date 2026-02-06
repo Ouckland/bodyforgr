@@ -1,0 +1,55 @@
+{
+  "name": "bodyforgr",
+  "description": "Fitness web app waitlist",
+  "runtime": "python3.11",
+  "env": [
+    {
+      "key": "SECRET_KEY",
+      "description": "Django secret key",
+      "required": true,
+      "value": "django-insecure-4hdk!458n7&q3d0bylh74*xju(0l+17vcce^2gdwz&$vtozuz6"
+    },
+    {
+      "key": "DEBUG",
+      "description": "Django debug mode",
+      "required": false,
+      "value": "False"
+    },
+    {
+      "key": "DATABASE_URL",
+      "description": "Supabase PostgreSQL connection",
+      "required": true,
+      "value": "postgresql://postgres:qDJDuqjFw9Hxx51B@db.rqfptycgrkrvnazuvvjr.supabase.co:5432/postgres"
+    },
+    {
+      "key": "BREVO_SMTP_USER",
+      "description": "Brevo SMTP username",
+      "required": true,
+      "value": "9f3d32001@smtp-brevo.com"
+    },
+    {
+      "key": "BREVO_SMTP_KEY",
+      "description": "Brevo SMTP password",
+      "required": true,
+      "value": "adZHGGg8hpc5lO6p"
+    },
+    {
+      "key": "DEFAULT_FROM_EMAIL",
+      "description": "Default sender email",
+      "required": true,
+      "value": "BodyForgr Team <iselekorede5@gmail.com>"
+    },
+    {
+      "key": "CONTACT_EMAIL",
+      "description": "Contact/reply-to email",
+      "required": false,
+      "value": "iselekorede5+help@gmail.com"
+    }
+  ],
+  "build": {
+    "command": "pip install -r requirements.txt"
+  },
+  "run": {
+    "command": "gunicorn --workers 1 --threads 8 --timeout 0 config.wsgi:application"
+  }
+}

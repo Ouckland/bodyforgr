@@ -3,6 +3,8 @@ __pycache__/
 .vscode/
 *.pyc
 
+.env
+
 imm-todo.md
 mvp-architec.md
 mvp-roadmap.md
