@@ -1,18 +1,20 @@
+# config/settings.py - UPDATED AND CORRECTED
 import os
 from pathlib import Path
 from decouple import config
 import dj_database_url
-from django.core.management.utils import get_random_secret_key
 
-# Build paths
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Security
-SECRET_KEY = config('SECRET_KEY', default=get_random_secret_key())
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-production')
+
+# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
+
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
-# Apps
+# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -54,33 +56,40 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+# Database configuration
+# Render automatically provides DATABASE_URL
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
-# Database
-DATABASES = {
-    'default': dj_database_url.config(
-        default=config('DATABASE_URL', default='sqlite:///db.sqlite3'),
-        conn_max_age=600,  # Connection timeout
-        conn_health_checks=True,
-    )
-}
-
-# For production, you might want connection limits
-if not DEBUG:
-    DATABASES['default']['OPTIONS'] = {
-        'connect_timeout': 10,
-        'keepalives': 1,
-        'keepalives_idle': 30,
-        'keepalives_interval': 10,
-        'keepalives_count': 5,
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+    {
+        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    },
+    {
+        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
 ]
 
 # Internationalization
@@ -89,7 +98,7 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files
+# Static files (CSS, JavaScript, Images)
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
@@ -98,21 +107,22 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Default primary key
+# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# ========== BREVO EMAIL CONFIGURATION ==========
+# Email configuration (for Brevo)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = config('BREVO_SMTP_HOST', default='smtp-relay.brevo.com')
 EMAIL_PORT = config('BREVO_SMTP_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('BREVO_USE_TLS', default=True, cast=bool)
-EMAIL_USE_SSL = config('BREVO_USE_SSL', default=False, cast=bool)
-EMAIL_HOST_USER = config('BREVO_SMTP_USER', default='')  # Your Brevo SMTP username
-EMAIL_HOST_PASSWORD = config('BREVO_SMTP_KEY', default='')  # Your Brevo SMTP password
+EMAIL_HOST_USER = config('BREVO_SMTP_USER', default='')
+EMAIL_HOST_PASSWORD = config('BREVO_SMTP_KEY', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@bodyforgr.com')
-SERVER_EMAIL = DEFAULT_FROM_EMAIL  # For admin emails
 
-# ========== SECURITY SETTINGS ==========
+# Whitenoise for static files
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Security settings for production
 if not DEBUG:
     # SSL/HTTPS
     SECURE_SSL_REDIRECT = True
@@ -131,6 +141,57 @@ if not DEBUG:
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
+    
+    # Connection settings for serverless (Pxxl)
+    # Lower CONN_MAX_AGE for serverless environments
+    if DATABASE_URL:
+        DATABASES['default']['CONN_MAX_AGE'] = 60
+        # DISABLE_SERVER_SIDE_CURSORS helps with pg8000 performance
+        DATABASES['default']['DISABLE_SERVER_SIDE_CURSORS'] = True
 
-# Whitenoise compression
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Pxxl-specific settings
+# Check if running on Pxxl
+IS_PXXL = 'PXXL_APP' in os.environ or 'PXXL' in os.environ
+
+if IS_PXXL:
+    # Add Pxxl domains to allowed hosts
+    pxxl_hosts = ['.pxxl.click', 'bodyforgr.pxxl.click']
+    ALLOWED_HOSTS.extend(pxxl_hosts)
+    
+    # Add CSRF trusted origins for Pxxl
+    CSRF_TRUSTED_ORIGINS = [f'https://{host}' for host in pxxl_hosts]
+    
+    # Ensure static files work on Pxxl
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    
+    # Database optimizations for Pxxl
+    if DATABASE_URL:
+        DATABASES['default']['OPTIONS']['connect_timeout'] = 10
+        DATABASES['default']['CONN_MAX_AGE'] = 30  # Even lower for Pxxl
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'waitlist': {
+            'handlers': ['console'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
+        },
+    },
+}
