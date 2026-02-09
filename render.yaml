@@ -1,0 +1,5 @@
+services:
+  - type: web
+    name: bodyforgr
+    env: python
+    runtime: python-3.11.8
