@@ -52,25 +52,24 @@ def send_email_async(waitlist_user, position, is_new_user):
 @require_http_methods(["POST"])
 def waitlist_signup(request):
     """
-    Handle waitlist signup (AJAX only)
-    Using atomic transaction to prevent race conditions
+    Handle waitlist signup (AJAX)
+    Redirects to thank you page on success
     """
     form = WaitlistSignupForm(request.POST)
-    
+
     if not form.is_valid():
         return JsonResponse({
             'success': False,
             'errors': form.errors
         }, status=400)
-    
+
     email = form.cleaned_data['email'].lower()
     name = form.cleaned_data['name']
     role = form.cleaned_data['role']
     source = form.cleaned_data.get('source')
-    
+
     try:
         with transaction.atomic():
-            # Use get_or_create for atomic operation
             waitlist_user, created = WaitListUser.objects.get_or_create(
                 email=email,
                 defaults={
@@ -80,58 +79,60 @@ def waitlist_signup(request):
                     'is_invited': True,
                 }
             )
-            
-            # If user already existed, update their info
+
             if not created:
+                # Update existing user info
                 waitlist_user.name = name
                 waitlist_user.role = role
                 waitlist_user.source = source
                 waitlist_user.save()
             else:
-                # Check if early bird for new users only
+                # Early bird logic
                 total_users = WaitListUser.objects.count()
                 if total_users <= EARLY_BIRD_LIMIT:
                     waitlist_user.is_early_adopter = True
-                
-                # Get IP address for new users
+
+                # Get IP address
                 x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-                if x_forwarded_for:
-                    ip = x_forwarded_for.split(',')[0]
-                else:
-                    ip = request.META.get('REMOTE_ADDR')
+                ip = x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
                 waitlist_user.ip_address = ip
-                
                 waitlist_user.save()
-            
-            # Calculate position
+
+            # Send email asynchronously
             position = waitlist_user.waitlist_position
-            
-            Thread(target=send_email_async, args=(waitlist_user, position, created)).start()
-            # Prepare response
-            response_data = {
-                'success': True,
-                'message': "You're on the waitlist!",
-                'is_early_adopter': waitlist_user.is_early_adopter,
-                'is_new_user': created,
+            Thread(
+                target=send_email_async,
+                args=(waitlist_user, position, created),
+                daemon=True
+            ).start()
+
+            # Save some session data for the thanks page
+            request.session['waitlist_data'] = {
+                'name': name,
+                'email': email,
                 'position': position,
-                'total_users': WaitListUser.objects.count(),
+                'is_early_adopter': waitlist_user.is_early_adopter,
             }
-            
-            return JsonResponse(response_data)
-            
+
+            # Return JSON pointing to redirect URL
+            return JsonResponse({
+                'success': True,
+                'redirect_url': '/waitlist/thanks/'
+            })
+
     except IntegrityError:
-        # This shouldn't happen with get_or_create + atomic, but just in case
         return JsonResponse({
             'success': False,
             'error': 'This email is already on the waitlist.'
         }, status=400)
-        
     except Exception as e:
         logger.error(f"Error in waitlist signup: {str(e)}", exc_info=True)
         return JsonResponse({
             'success': False,
             'error': 'An unexpected error occurred. Please try again.'
         }, status=500)
+
+
 
 
 def send_confirmation_email(waitlist_user, position=None, is_new_user=True):
@@ -163,7 +164,7 @@ def send_confirmation_email(waitlist_user, position=None, is_new_user=True):
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[waitlist_user.email],
             html_message=html_content,
-            fail_silently=True,
+            fail_silently=False,
         )
         
         logger.info(f"Confirmation email sent to {waitlist_user.email}")

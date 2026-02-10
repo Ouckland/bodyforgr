@@ -392,55 +392,56 @@ function initMobileNavigation() {
             waitlistForm.querySelectorAll('.form-input.error, .form-input.success').forEach(f => f.classList.remove('error', 'success'));
         }
 
-        async function handleFormSubmit(e) {
-            e.preventDefault();
-            if (isSubmitting) return;
+async function handleFormSubmit(e) {
+    e.preventDefault();
+    if (isSubmitting) return;
 
-            if (!validateAllFields()) {
-                waitlistForm.classList.add('shake');
-                setTimeout(() => waitlistForm.classList.remove('shake'), 500);
-                return;
-            }
-
-            isSubmitting = true;
-            const submitBtn = formElements.submitBtn;
-
-            setButtonLoading(submitBtn, true);
-
-            try {
-                const formData = new FormData(waitlistForm);
-                formData.delete('confirm_email');
-
-                // Use the form's action dynamically (no hardcoded URL)
-                const response = await fetch(waitlistForm.action, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                    },
-                });
-
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    handleSuccessResponse(data);
-                    waitlistForm.reset();
-                    clearAllErrors();
-                } else {
-                    handleErrorResponse(data, response.status);
-                }
-
-            } catch (error) {
-                handleNetworkError(error);
-            } finally {
-                setTimeout(() => {
-                    setButtonLoading(submitBtn, false);
-                    isSubmitting = false;
-                }, validationConfig.loadingTimeout);
-            }
-        }
+    if (!validateAllFields()) {
+        waitlistForm.classList.add('shake');
+        setTimeout(() => waitlistForm.classList.remove('shake'), 500);
+        return;
     }
+
+    isSubmitting = true;
+    const submitBtn = formElements.submitBtn;
+    setButtonLoading(submitBtn, true);
+
+    try {
+        const formData = new FormData(waitlistForm);
+        formData.delete('confirm_email');
+
+        const response = await fetch(waitlistForm.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            // Show small notification
+            showNotification("Successfully signed up! Redirecting...", "success");
+
+            // Redirect using URL returned by server
+            setTimeout(() => {
+                window.location.href = data.redirect_url;
+            }, 1000); // 1s delay for UX
+        } else {
+            handleErrorResponse(data, response.status);
+        }
+
+    } catch (error) {
+        handleNetworkError(error);
+    } finally {
+        setTimeout(() => {
+            setButtonLoading(submitBtn, false);
+            isSubmitting = false;
+        }, 500); // keep this shorter; loadingTimeout is unnecessary here
+    }
+}
 
     function getButtonState(button) {
         const span = button.querySelector('span');
