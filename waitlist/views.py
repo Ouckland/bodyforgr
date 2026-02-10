@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect
 from django.conf import settings
-from django.contrib import messages
 from django.core.mail import send_mail
+from django.db import transaction
+from django.db.utils import IntegrityError
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.http import JsonResponse
@@ -33,9 +34,6 @@ def landing_page(request):
     }
     return render(request, 'waitlist/landing-page.html', context)
 
-
-from django.db import transaction
-from django.db.utils import IntegrityError
 
 @csrf_exempt
 @require_http_methods(["POST"])

@@ -6,7 +6,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('waitlist.urls')),  # This includes your waitlist app
+    path('waitlist/', include('waitlist.urls')),  # This includes your waitlist app
 ]
 
 # Serve static files in development
