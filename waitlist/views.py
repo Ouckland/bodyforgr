@@ -1,3 +1,4 @@
+from threading import Thread
 from django.shortcuts import render, redirect
 from django.conf import settings
 from django.core.mail import send_mail
@@ -9,6 +10,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 import logging
+
 import json
 from .models import WaitListUser
 from .forms import WaitlistSignupForm
@@ -17,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 # Constants
 EARLY_BIRD_LIMIT = 100
+
+
 
 
 def landing_page(request):
@@ -34,6 +38,15 @@ def landing_page(request):
     }
     return render(request, 'waitlist/landing-page.html', context)
 
+
+
+def send_email_async(waitlist_user, position, is_new_user):
+    """Send email in a background thread"""
+    try:
+        send_confirmation_email(waitlist_user, position, is_new_user)
+    except Exception as e:
+        logger.warning(f"Async email failed: {str(e)}")
+    
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -93,22 +106,15 @@ def waitlist_signup(request):
             # Calculate position
             position = waitlist_user.waitlist_position
             
-            # Send email (don't fail the whole request if email fails)
-            email_sent = False
-            try:
-                email_sent = send_confirmation_email(waitlist_user, position, created)
-            except Exception as e:
-                logger.warning(f"Email sending error (non-critical): {str(e)}")
-            
+            Thread(target=send_email_async, args=(waitlist_user, position, created)).start()
             # Prepare response
             response_data = {
                 'success': True,
-                'message': "You're on the waitlist!" + (" Check your email for confirmation." if email_sent else ""),
+                'message': "You're on the waitlist!",
                 'is_early_adopter': waitlist_user.is_early_adopter,
                 'is_new_user': created,
                 'position': position,
                 'total_users': WaitListUser.objects.count(),
-                'email_sent': email_sent,
             }
             
             return JsonResponse(response_data)
@@ -176,64 +182,65 @@ def waitlist_api_signup(request):
             'success': False,
             'error': 'Method not allowed'
         }, status=405)
-    
+
     try:
         data = json.loads(request.body)
         form = WaitlistSignupForm(data)
-        
-        if form.is_valid():
-            # Process similar to regular signup
-            email = form.cleaned_data['email'].lower()
-            existing_user = WaitListUser.objects.filter(email=email).first()
-            
-            if existing_user:
-                existing_user.name = form.cleaned_data['name']
-                existing_user.role = form.cleaned_data['role']
-                existing_user.source = form.cleaned_data['source']
-                existing_user.save()
-                is_new = False
-                position = existing_user.waitlist_position
-            else:
-                waitlist_user = form.save(commit=False)
-                total_users = WaitListUser.objects.count()
-                if total_users < EARLY_BIRD_LIMIT:
-                    waitlist_user.is_early_adopter = True
-                waitlist_user.is_invited = True
-                waitlist_user.save()
-                is_new = True
-                position = waitlist_user.waitlist_position
-            
-            # Send email
-            send_confirmation_email(
-                existing_user if existing_user else waitlist_user,
-                position,
-                is_new
-            )
-            
-            return JsonResponse({
-                'success': True,
-                'message': 'Successfully added to waitlist',
-                'position': position,
-                'is_early_adopter': (existing_user if existing_user else waitlist_user).is_early_adopter
-            })
-        else:
+
+        if not form.is_valid():
             return JsonResponse({
                 'success': False,
                 'errors': form.errors
             }, status=400)
-            
+
+        email = form.cleaned_data['email'].lower()
+        existing_user = WaitListUser.objects.filter(email=email).first()
+
+        if existing_user:
+            existing_user.name = form.cleaned_data['name']
+            existing_user.role = form.cleaned_data['role']
+            existing_user.source = form.cleaned_data['source']
+            existing_user.save()
+            is_new = False
+            user_to_email = existing_user
+            position = existing_user.waitlist_position
+        else:
+            waitlist_user = form.save(commit=False)
+            total_users = WaitListUser.objects.count()
+            if total_users < EARLY_BIRD_LIMIT:
+                waitlist_user.is_early_adopter = True
+            waitlist_user.is_invited = True
+            waitlist_user.save()
+            is_new = True
+            user_to_email = waitlist_user
+            position = waitlist_user.waitlist_position
+
+        # Send email asynchronously in a separate thread
+        Thread(
+            target=send_confirmation_email,
+            args=(user_to_email, position, is_new),
+            daemon=True
+        ).start()
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Successfully added to waitlist',
+            'position': position,
+            'is_early_adopter': user_to_email.is_early_adopter
+        })
+
     except json.JSONDecodeError:
         return JsonResponse({
             'success': False,
             'error': 'Invalid JSON data'
         }, status=400)
     except Exception as e:
-        logger.error(f"API signup error: {str(e)}")
+        logger.error(f"API signup error: {str(e)}", exc_info=True)
         return JsonResponse({
             'success': False,
             'error': 'Internal server error'
         }, status=500)
-
+    
 
 def waitlist_success(request):
     """Thank you page for successful signup"""

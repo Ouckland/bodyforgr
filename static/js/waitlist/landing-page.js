@@ -219,306 +219,229 @@ function initMobileNavigation() {
     updateActiveMobileNav();
 }
 
-// ===== FORM VALIDATION & SUBMISSION =====
-function initFormValidation() {
-    const waitlistForm = document.getElementById('waitlistForm');
-    if (!waitlistForm) return;
-    
-    // Form validation configuration
-    const validationConfig = {
-        minNameLength: 2,
-        maxNameLength: 100,
-        emailRegex: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-        debounceDelay: 300,
-        loadingTimeout: 10000,
-    };
-    
-    // State management
-    let isSubmitting = false;
-    let validationTimeout = null;
-    
-    const formElements = {
-        name: waitlistForm.querySelector('#id_name'),
-        email: waitlistForm.querySelector('#id_email'),
-        confirmEmail: waitlistForm.querySelector('#id_confirm_email'),
-        role: waitlistForm.querySelector('#id_role'),
-        source: waitlistForm.querySelector('#id_source'),
-        submitBtn: waitlistForm.querySelector('.btn-submit'),
-    };
-    
-    // Initialize real-time validation
-    initRealTimeValidation();
-    
-    // Handle form submission
-    waitlistForm.addEventListener('submit', handleFormSubmit);
-    
-    // ===== HELPER FUNCTIONS =====
-    
-    function initRealTimeValidation() {
-        // Add input event listeners for real-time validation
-        [formElements.name, formElements.email, formElements.confirmEmail].forEach(input => {
-            if (input) {
-                input.addEventListener('input', debounce(validateField, validationConfig.debounceDelay));
-                input.addEventListener('blur', validateField);
-            }
-        });
-        
-        // Role validation on change
-        if (formElements.role) {
-            formElements.role.addEventListener('change', function() {
-                validateSelectField(this);
-            });
-        }
-    }
-    
-    function debounce(func, delay) {
-        return function(...args) {
-            clearTimeout(validationTimeout);
-            validationTimeout = setTimeout(() => func.apply(this, args), delay);
+    // ===== FORM VALIDATION & SUBMISSION =====
+    function initFormValidation() {
+        const waitlistForm = document.getElementById('waitlistForm');
+        if (!waitlistForm) return;
+
+        const validationConfig = {
+            minNameLength: 2,
+            maxNameLength: 100,
+            emailRegex: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+            debounceDelay: 300,
+            loadingTimeout: 10000,
         };
-    }
-    
-    function validateField(e) {
-        const field = e.target;
-        const value = field.value.trim();
-        const fieldName = field.name;
-        
-        // Clear previous error for this field
-        clearFieldError(field);
-        
-        // Skip validation if field is empty (handled in final validation)
-        if (!value) return true;
-        
-        let isValid = true;
-        let errorMessage = '';
-        
-        switch(fieldName) {
-            case 'name':
-                isValid = validateName(value);
-                if (!isValid) errorMessage = 'Name must be at least 2 characters';
-                break;
-                
-            case 'email':
-                isValid = validateEmail(value);
-                if (!isValid) errorMessage = 'Please enter a valid email address';
-                break;
-                
-            case 'confirm_email':
-                const emailValue = formElements.email ? formElements.email.value.trim() : '';
-                isValid = validateEmailConfirmation(value, emailValue);
-                if (!isValid) errorMessage = 'Email addresses do not match';
-                break;
-        }
-        
-        if (!isValid) {
-            showFieldError(field, errorMessage);
-        } else {
-            showFieldSuccess(field);
-        }
-        
-        return isValid;
-    }
-    
-    function validateSelectField(selectElement) {
-        const value = selectElement.value;
-        const isValid = value !== '';
-        
-        if (selectElement === formElements.role) {
-            if (!isValid) {
-                showFieldError(selectElement, 'Please select your role');
-            } else {
-                clearFieldError(selectElement);
-                showFieldSuccess(selectElement);
+
+        let isSubmitting = false;
+        let validationTimeout = null;
+
+        const formElements = {
+            name: waitlistForm.querySelector('#id_name'),
+            email: waitlistForm.querySelector('#id_email'),
+            confirmEmail: waitlistForm.querySelector('#id_confirm_email'),
+            role: waitlistForm.querySelector('#id_role'),
+            source: waitlistForm.querySelector('#id_source'),
+            submitBtn: waitlistForm.querySelector('.btn-submit'),
+        };
+
+        initRealTimeValidation();
+        waitlistForm.addEventListener('submit', handleFormSubmit);
+
+        // ===== HELPER FUNCTIONS =====
+
+        function initRealTimeValidation() {
+            [formElements.name, formElements.email, formElements.confirmEmail].forEach(input => {
+                if (input) {
+                    input.addEventListener('input', debounce(validateField, validationConfig.debounceDelay));
+                    input.addEventListener('blur', validateField);
+                }
+            });
+
+            if (formElements.role) {
+                formElements.role.addEventListener('change', () => validateSelectField(formElements.role));
             }
         }
-        
-        return isValid;
-    }
-    
-    function validateName(name) {
-        if (!name || name.length < validationConfig.minNameLength) return false;
-        if (name.length > validationConfig.maxNameLength) return false;
-        const nameRegex = /^[a-zA-Z\s\-']+$/;
-        return nameRegex.test(name);
-    }
-    
-    function validateEmail(email) {
-        return validationConfig.emailRegex.test(email);
-    }
-    
-    function validateEmailConfirmation(confirmEmail, email) {
-        return confirmEmail === email;
-    }
-    
-    function validateAllFields() {
-        let isValid = true;
-        
-        // Clear all existing errors first
-        clearAllErrors();
-        
-        // Validate name
-        if (formElements.name) {
-            const nameValue = formElements.name.value.trim();
-            if (!nameValue || !validateName(nameValue)) {
+
+        function debounce(func, delay) {
+            return function(...args) {
+                clearTimeout(validationTimeout);
+                validationTimeout = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
+
+        function validateField(e) {
+            const field = e.target;
+            const value = field.value.trim();
+            const fieldName = field.name;
+
+            clearFieldError(field);
+            if (!value) return true;
+
+            let isValid = true;
+            let errorMessage = '';
+
+            switch (fieldName) {
+                case 'name':
+                    isValid = validateName(value);
+                    if (!isValid) errorMessage = 'Name must be at least 2 characters';
+                    break;
+                case 'email':
+                    isValid = validateEmail(value);
+                    if (!isValid) errorMessage = 'Please enter a valid email address';
+                    break;
+                case 'confirm_email':
+                    const emailValue = formElements.email ? formElements.email.value.trim() : '';
+                    isValid = validateEmailConfirmation(value, emailValue);
+                    if (!isValid) errorMessage = 'Email addresses do not match';
+                    break;
+            }
+
+            if (!isValid) showFieldError(field, errorMessage);
+            else showFieldSuccess(field);
+
+            return isValid;
+        }
+
+        function validateSelectField(selectElement) {
+            const isValid = selectElement.value !== '';
+            if (!isValid) showFieldError(selectElement, 'Please select your role');
+            else showFieldSuccess(selectElement);
+            return isValid;
+        }
+
+        function validateName(name) {
+            if (!name || name.length < validationConfig.minNameLength) return false;
+            if (name.length > validationConfig.maxNameLength) return false;
+            return /^[a-zA-Z\s\-']+$/.test(name);
+        }
+
+        function validateEmail(email) {
+            return validationConfig.emailRegex.test(email);
+        }
+
+        function validateEmailConfirmation(confirmEmail, email) {
+            return confirmEmail === email;
+        }
+
+        function validateAllFields() {
+            let isValid = true;
+            clearAllErrors();
+
+            if (formElements.name && !validateName(formElements.name.value.trim())) {
                 showFieldError(formElements.name, 'Please enter your full name (min 2 characters)');
                 isValid = false;
             }
-        }
-        
-        // Validate email
-        if (formElements.email) {
-            const emailValue = formElements.email.value.trim();
-            if (!emailValue || !validateEmail(emailValue)) {
+
+            if (formElements.email && !validateEmail(formElements.email.value.trim())) {
                 showFieldError(formElements.email, 'Please enter a valid email address');
                 isValid = false;
             }
-        }
-        
-        // Validate email confirmation
-        if (formElements.confirmEmail && formElements.email) {
-            const confirmValue = formElements.confirmEmail.value.trim();
-            const emailValue = formElements.email.value.trim();
-            if (!confirmValue || !validateEmailConfirmation(confirmValue, emailValue)) {
+
+            if (formElements.confirmEmail && !validateEmailConfirmation(formElements.confirmEmail.value.trim(), formElements.email.value.trim())) {
                 showFieldError(formElements.confirmEmail, 'Email addresses do not match');
                 isValid = false;
             }
-        }
-        
-        // Validate role (required)
-        if (formElements.role) {
-            if (!formElements.role.value) {
+
+            if (formElements.role && !formElements.role.value) {
                 showFieldError(formElements.role, 'Please select your role');
                 isValid = false;
             }
+
+            if (!isValid) {
+                const firstErrorField = waitlistForm.querySelector('.form-input.error');
+                if (firstErrorField) firstErrorField.focus();
+            }
+
+            return isValid;
         }
-        
-        // Highlight first invalid field for focus
-        if (!isValid) {
-            const firstErrorField = waitlistForm.querySelector('.form-input.error');
-            if (firstErrorField) {
-                firstErrorField.focus();
+
+        function showFieldError(field, message) {
+            field.classList.add('error');
+            field.classList.remove('success');
+
+            let errorEl = field.parentNode.querySelector('.error-message');
+            if (!errorEl) {
+                errorEl = document.createElement('div');
+                errorEl.className = 'error-message';
+                field.parentNode.appendChild(errorEl);
+            }
+            errorEl.textContent = message;
+            errorEl.style.opacity = '1';
+            errorEl.style.transform = 'translateY(0)';
+        }
+
+        function showFieldSuccess(field) {
+            field.classList.remove('error');
+            field.classList.add('success');
+            const errorEl = field.parentNode.querySelector('.error-message');
+            if (errorEl) {
+                errorEl.style.opacity = '0';
+                errorEl.style.transform = 'translateY(-5px)';
+                setTimeout(() => errorEl.remove(), 300);
             }
         }
-        
-        return isValid;
-    }
-    
-    function showFieldError(field, message) {
-        field.classList.add('error');
-        field.classList.remove('success');
-        
-        // Create or update error message
-        let errorElement = field.parentNode.querySelector('.error-message');
-        if (!errorElement) {
-            errorElement = document.createElement('div');
-            errorElement.className = 'error-message';
-            field.parentNode.appendChild(errorElement);
+
+        function clearFieldError(field) {
+            field.classList.remove('error');
+            const errorEl = field.parentNode.querySelector('.error-message');
+            if (errorEl) errorEl.remove();
         }
-        
-        errorElement.textContent = message;
-        errorElement.style.opacity = '1';
-        errorElement.style.transform = 'translateY(0)';
-    }
-    
-    function showFieldSuccess(field) {
-        field.classList.remove('error');
-        field.classList.add('success');
-        
-        // Remove error message if it exists
-        const errorElement = field.parentNode.querySelector('.error-message');
-        if (errorElement) {
-            errorElement.style.opacity = '0';
-            errorElement.style.transform = 'translateY(-5px)';
-            setTimeout(() => {
-                if (errorElement.parentNode) {
-                    errorElement.parentNode.removeChild(errorElement);
-                }
-            }, 300);
+
+        function clearAllErrors() {
+            waitlistForm.querySelectorAll('.error-message').forEach(el => el.remove());
+            waitlistForm.querySelectorAll('.form-input.error, .form-input.success').forEach(f => f.classList.remove('error', 'success'));
         }
-    }
-    
-    function clearFieldError(field) {
-        field.classList.remove('error');
-        const errorElement = field.parentNode.querySelector('.error-message');
-        if (errorElement) {
-            errorElement.remove();
-        }
-    }
-    
-    function clearAllErrors() {
-        const errorElements = waitlistForm.querySelectorAll('.error-message');
-        errorElements.forEach(el => el.remove());
-        
-        const errorFields = waitlistForm.querySelectorAll('.form-input.error');
-        errorFields.forEach(field => field.classList.remove('error'));
-        
-        const successFields = waitlistForm.querySelectorAll('.form-input.success');
-        successFields.forEach(field => field.classList.remove('success'));
-    }
-    
-    async function handleFormSubmit(e) {
-        e.preventDefault();
-        
-        if (isSubmitting) return;
-        
-        // Validate all fields
-        const isValid = validateAllFields();
-        if (!isValid) {
-            // Add shake animation to invalid form
-            waitlistForm.classList.add('shake');
-            setTimeout(() => waitlistForm.classList.remove('shake'), 500);
-            return;
-        }
-        
-        // Start submission process
-        isSubmitting = true;
-        const submitBtn = formElements.submitBtn;
-        const originalBtnState = getButtonState(submitBtn);
-        
-        // Show loading state
-        setButtonLoading(submitBtn, true);
-        
-        try {
-            // Prepare form data
-            const formData = new FormData(waitlistForm);
-            
-            // Remove confirm_email from form data (not needed for backend)
-            formData.delete('confirm_email');
-            
-            // Send AJAX request
-            const response = await fetch(waitlistForm.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': getCSRFToken(),
-                }
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok && data.success) {
-                // Success - show success message and reset form
-                handleSuccessResponse(data);
-                waitlistForm.reset();
-                clearAllErrors();
-            } else {
-                // Error from server
-                handleErrorResponse(data, response.status);
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            if (isSubmitting) return;
+
+            if (!validateAllFields()) {
+                waitlistForm.classList.add('shake');
+                setTimeout(() => waitlistForm.classList.remove('shake'), 500);
+                return;
             }
-            
-        } catch (error) {
-            // Network error
-            handleNetworkError(error);
-        } finally {
-            // Reset button state after timeout
-            setTimeout(() => {
-                setButtonLoading(submitBtn, false, originalBtnState);
-                isSubmitting = false;
-            }, validationConfig.loadingTimeout);
+
+            isSubmitting = true;
+            const submitBtn = formElements.submitBtn;
+
+            setButtonLoading(submitBtn, true);
+
+            try {
+                const formData = new FormData(waitlistForm);
+                formData.delete('confirm_email');
+
+                // Use the form's action dynamically (no hardcoded URL)
+                const response = await fetch(waitlistForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    },
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    handleSuccessResponse(data);
+                    waitlistForm.reset();
+                    clearAllErrors();
+                } else {
+                    handleErrorResponse(data, response.status);
+                }
+
+            } catch (error) {
+                handleNetworkError(error);
+            } finally {
+                setTimeout(() => {
+                    setButtonLoading(submitBtn, false);
+                    isSubmitting = false;
+                }, validationConfig.loadingTimeout);
+            }
         }
     }
-    
+
     function getButtonState(button) {
         const span = button.querySelector('span');
         const icon = button.querySelector('i');
